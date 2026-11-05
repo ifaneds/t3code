@@ -65,7 +65,9 @@ import {
   FolderIcon,
   FolderPlusIcon,
   MessageSquareDashedIcon,
+  LayoutGridIcon,
   LinkIcon,
+  ListChecksIcon,
   MessageSquareIcon,
   PaletteIcon,
   RotateCcwIcon,
@@ -1576,6 +1578,29 @@ function OpenCommandPaletteDialog(props: {
       },
     });
   }
+
+  actionItems.push(
+    {
+      kind: "action",
+      value: "action:agents",
+      searchTerms: ["agents", "dashboard", "grid", "status", "working", "overview"],
+      title: "Open agents",
+      icon: <LayoutGridIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/agents" });
+      },
+    },
+    {
+      kind: "action",
+      value: "action:today",
+      searchTerms: ["today", "feed", "inbox", "needs you", "review", "approvals"],
+      title: "Open today",
+      icon: <ListChecksIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/today" });
+      },
+    },
+  );
 
   actionItems.push({
     kind: "action",
