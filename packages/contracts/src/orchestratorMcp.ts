@@ -27,6 +27,7 @@ import {
 } from "./scheduledTask.ts";
 import { ProviderInteractionMode, ProviderRequestKind, RuntimeMode } from "./providerPolicy.ts";
 import { PullRequestState } from "./pullRequest.ts";
+import { ThreadTag } from "./threadTags.ts";
 import {
   ThreadLinkedPullRequest,
   ThreadPullRequestKey,
@@ -264,6 +265,7 @@ export const OrchestratorMcpCreateThreadRequest = Schema.Struct({
   target: Schema.optional(OrchestratorMcpTarget),
   runtimeMode: Schema.optional(OrchestratorMcpRuntimeMode),
   interactionMode: Schema.optional(OrchestratorMcpInteractionMode),
+  tags: Schema.optional(Schema.Array(ThreadTag).check(Schema.isMaxLength(8))),
 });
 export type OrchestratorMcpCreateThreadRequest = typeof OrchestratorMcpCreateThreadRequest.Type;
 

@@ -70,6 +70,41 @@ export function agentMatchesFilter(state: AgentTileState, filter: AgentFilter): 
   return true;
 }
 
+function isLiveThread(thread: EnvironmentThreadShell, now: string): boolean {
+  return (
+    thread.archivedAt === null &&
+    thread.deletedAt === null &&
+    thread.settledOverride !== "settled" &&
+    !isSidebarHiddenThread(thread) &&
+    !effectiveSnoozed(thread, { now })
+  );
+}
+
+/** Agents mark a proposal with this tag when they create its thread; approving removes it. */
+export const IDEA_TAG = "idea";
+
+function isIdeaThread(thread: EnvironmentThreadShell): boolean {
+  return thread.source.tags?.includes(IDEA_TAG) === true;
+}
+
+/** Open proposals, newest first. Rejected ideas are settled and later ones snoozed, so both drop out. */
+export function buildIdeaList(
+  threads: ReadonlyArray<EnvironmentThreadShell>,
+  now: string,
+): ReadonlyArray<EnvironmentThreadShell> {
+  return threads
+    .filter((thread) => isIdeaThread(thread) && isLiveThread(thread, now))
+    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** "Later" brings an idea back at 9am the next day, in the viewer's time zone. */
+export function nextMorning(now: Date): string {
+  const morning = new Date(now);
+  morning.setDate(morning.getDate() + 1);
+  morning.setHours(9, 0, 0, 0);
+  return morning.toISOString();
+}
+
 export interface AgentTile {
   readonly thread: EnvironmentThreadShell;
   readonly state: AgentTileState;
@@ -81,14 +116,7 @@ export function buildAgentTiles(
   now: string,
 ): ReadonlyArray<AgentTile> {
   return threads
-    .filter(
-      (thread) =>
-        thread.archivedAt === null &&
-        thread.deletedAt === null &&
-        thread.settledOverride !== "settled" &&
-        !isSidebarHiddenThread(thread) &&
-        !effectiveSnoozed(thread, { now }),
-    )
+    .filter((thread) => isLiveThread(thread, now))
     .map((thread) => ({ thread, state: resolveAgentTileState(thread) }))
     .toSorted(
       (a, b) =>
@@ -104,7 +132,11 @@ export function buildTodayFeed(tiles: ReadonlyArray<AgentTile>): {
   return {
     needsYou: tiles.filter((tile) => agentNeedsYou(tile.state)),
     toReview: tiles.filter(
-      (tile) => (tile.state === "done" || tile.state === "failed") && isUnreviewed(tile.thread),
+      (tile) =>
+        (tile.state === "done" || tile.state === "failed") &&
+        isUnreviewed(tile.thread) &&
+        // Finished proposals wait in Ideas instead.
+        !isIdeaThread(tile.thread),
     ),
   };
 }

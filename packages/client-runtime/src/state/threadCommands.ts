@@ -45,6 +45,7 @@ import {
   reorderPinnedThread,
   reorderActiveThread,
   setThreadAutoSettle,
+  setThreadTag,
   settleThread,
   snoozeThread,
   startThreadTurn,
@@ -170,6 +171,12 @@ export function createThreadEnvironmentAtoms<R, E>(
     snooze: createEnvironmentCommand(runtime, {
       label: "environment-data:commands:thread:snooze",
       execute: snoozeThread,
+      scheduler,
+      concurrency,
+    }),
+    setTag: createEnvironmentCommand(runtime, {
+      label: "environment-data:commands:thread:set-tag",
+      execute: setThreadTag,
       scheduler,
       concurrency,
     }),

@@ -5,7 +5,9 @@ import { describe, expect, it } from "vite-plus/test";
 import { makeThreadFixture, type ThreadFixtureOverrides } from "../../test-fixtures";
 import {
   buildAgentTiles,
+  buildIdeaList,
   buildTodayFeed,
+  nextMorning,
   resolveAgentTileState,
   type AgentTileState,
 } from "./agentsDashboard.logic";
@@ -37,6 +39,11 @@ function latestRun(status: "completed" | "failed") {
 
 function thread(id: string, overrides: ThreadFixtureOverrides = {}) {
   return makeThreadFixture({ id: ThreadId.make(id), ...overrides });
+}
+
+function idea(id: string, overrides: ThreadFixtureOverrides = {}) {
+  const base = thread(id, overrides);
+  return { ...base, source: { ...base.source, tags: ["idea"] } };
 }
 
 describe("resolveAgentTileState", () => {
@@ -115,6 +122,7 @@ describe("buildTodayFeed", () => {
             lastVisitedAt: "2026-03-09T11:00:00.000Z",
           }),
           thread("working", { runtime: runtime("running") }),
+          idea("finished-idea", { latestRun: latestRun("completed"), lastVisitedAt: null }),
         ],
         NOW,
       ),
@@ -122,5 +130,29 @@ describe("buildTodayFeed", () => {
 
     expect(feed.needsYou.map((tile) => tile.thread.id)).toEqual(["question"]);
     expect(feed.toReview.map((tile) => tile.thread.id)).toEqual(["unseen-done"]);
+  });
+});
+
+describe("buildIdeaList", () => {
+  it("lists open tagged proposals, newest first", () => {
+    const ideas = buildIdeaList(
+      [
+        idea("older", { createdAt: "2026-03-09T08:00:00.000Z" }),
+        thread("untagged"),
+        idea("rejected", { settledOverride: "settled" }),
+        idea("later", { snoozedUntil: "2099-01-01T00:00:00.000Z", snoozedAt: NOW }),
+        idea("newer", { createdAt: "2026-03-09T09:00:00.000Z" }),
+      ],
+      NOW,
+    );
+
+    expect(ideas.map((entry) => entry.id)).toEqual(["newer", "older"]);
+  });
+});
+
+describe("nextMorning", () => {
+  it("returns 9am local time on the following day", () => {
+    const morning = new Date(nextMorning(new Date(2026, 2, 9, 23, 30)));
+    expect([morning.getDate(), morning.getHours(), morning.getMinutes()]).toEqual([10, 9, 0]);
   });
 });

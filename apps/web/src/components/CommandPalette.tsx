@@ -66,6 +66,7 @@ import {
   FolderPlusIcon,
   MessageSquareDashedIcon,
   LayoutGridIcon,
+  LightbulbIcon,
   LinkIcon,
   ListChecksIcon,
   MessageSquareIcon,
@@ -1598,6 +1599,16 @@ function OpenCommandPaletteDialog(props: {
       icon: <ListChecksIcon className={ITEM_ICON_CLASS} />,
       run: async () => {
         await navigate({ to: "/today" });
+      },
+    },
+    {
+      kind: "action",
+      value: "action:ideas",
+      searchTerms: ["ideas", "proposals", "suggestions", "approve", "reject"],
+      title: "Open ideas",
+      icon: <LightbulbIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        await navigate({ to: "/ideas" });
       },
     },
   );

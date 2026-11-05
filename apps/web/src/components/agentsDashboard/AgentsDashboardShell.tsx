@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutGridIcon, ListChecksIcon } from "lucide-react";
+import { LayoutGridIcon, LightbulbIcon, ListChecksIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { isElectron } from "../../env";
@@ -9,6 +9,7 @@ import { WorkspacePageHeader } from "../WorkspacePageHeader";
 const TABS = [
   { to: "/agents", label: "Agents", Icon: LayoutGridIcon },
   { to: "/today", label: "Today", Icon: ListChecksIcon },
+  { to: "/ideas", label: "Ideas", Icon: LightbulbIcon },
 ] as const;
 
 export function AgentsDashboardShell(props: {
