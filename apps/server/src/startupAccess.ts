@@ -4,9 +4,12 @@ import * as NodeOS from "node:os";
 import { isPrivateNetworkHost, isSharedAddressSpaceHost } from "@t3tools/shared/hostClassification";
 import { QrCode } from "@t3tools/shared/qrCode";
 import { buildPairingAppLink } from "@t3tools/shared/remote";
+import { buildTailscaleHttpsBaseUrl, readTailscaleStatus } from "@t3tools/tailscale";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { ChildProcessSpawner } from "effect/process";
 
 import * as ServerConfig from "./config.ts";
 import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
@@ -151,6 +154,19 @@ const resolveListeningPort = (address: unknown, fallbackPort: number): number =>
   return fallbackPort;
 };
 
+/** Tailscale Serve binds to loopback, so other devices pair through its tailnet HTTPS address instead. */
+export const resolveHeadlessPairingBase = (input: {
+  readonly localConnectionString: string;
+  readonly tailscaleServePort: number | null;
+  readonly magicDnsName: string | null;
+}): string =>
+  input.tailscaleServePort === null || input.magicDnsName === null
+    ? input.localConnectionString
+    : buildTailscaleHttpsBaseUrl({
+        magicDnsName: input.magicDnsName,
+        servePort: input.tailscaleServePort,
+      });
+
 export const buildPairingUrl = (connectionString: string, token: string): string => {
   const url = new URL(connectionString);
   url.pathname = "/pair";
@@ -197,11 +213,25 @@ export const issueHeadlessServeAccessInfo = Effect.fn("issueHeadlessServeAccessI
   const serverConfig = yield* ServerConfig.ServerConfig;
   const httpServer = yield* HttpServer.HttpServer;
   const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
-  const connectionString = resolveHeadlessConnectionString(
-    serverConfig.host,
-    resolveListeningPort(httpServer.address, serverConfig.port),
-    { privateNetworkOnly: serverConfig.privateNetworkOnly },
-  );
+  // Optional so startup harnesses without process spawning keep the local URL.
+  const spawner = yield* Effect.serviceOption(ChildProcessSpawner.ChildProcessSpawner);
+  const magicDnsName =
+    serverConfig.tailscaleServeEnabled && Option.isSome(spawner)
+      ? yield* readTailscaleStatus.pipe(
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner.value),
+          Effect.map((status) => status.magicDnsName),
+          Effect.orElseSucceed(() => null),
+        )
+      : null;
+  const connectionString = resolveHeadlessPairingBase({
+    localConnectionString: resolveHeadlessConnectionString(
+      serverConfig.host,
+      resolveListeningPort(httpServer.address, serverConfig.port),
+      { privateNetworkOnly: serverConfig.privateNetworkOnly },
+    ),
+    tailscaleServePort: serverConfig.tailscaleServeEnabled ? serverConfig.tailscaleServePort : null,
+    magicDnsName,
+  });
   const issued = yield* serverAuth.issueStartupPairingCredential();
 
   return {

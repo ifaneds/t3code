@@ -5,6 +5,7 @@ import { describe, expect, it } from "@effect/vitest";
 import {
   acceptsPrivateNetworkConnection,
   resolveHeadlessConnectionString,
+  resolveHeadlessPairingBase,
 } from "./startupAccess.ts";
 
 const ipv4 = (address: string, internal = false): NodeOS.NetworkInterfaceInfo => ({
@@ -71,5 +72,20 @@ describe("acceptsPrivateNetworkConnection", () => {
     expect(accepts("203.0.113.7", "192.168.1.31")).toBe(false);
     expect(accepts("169.254.10.1", "169.254.10.2")).toBe(false);
     expect(accepts(undefined, "192.168.1.31")).toBe(false);
+  });
+});
+
+describe("resolveHeadlessPairingBase", () => {
+  const localConnectionString = "http://localhost:3773";
+
+  it.each([
+    ["serving over Tailscale", 443, "mac.tail1234.ts.net", "https://mac.tail1234.ts.net/"],
+    ["on another HTTPS port", 8443, "mac.tail1234.ts.net", "https://mac.tail1234.ts.net:8443/"],
+    ["without Tailscale Serve", null, "mac.tail1234.ts.net", localConnectionString],
+    ["when Tailscale has no MagicDNS name", 443, null, localConnectionString],
+  ] as const)("pairs %s", (_name, tailscaleServePort, magicDnsName, expected) => {
+    expect(
+      resolveHeadlessPairingBase({ localConnectionString, tailscaleServePort, magicDnsName }),
+    ).toBe(expected);
   });
 });
