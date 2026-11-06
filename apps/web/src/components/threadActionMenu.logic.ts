@@ -19,6 +19,7 @@ export type ThreadActionMenuId =
   | "unsnooze"
   | "rename"
   | "regenerate-title"
+  | "decorate"
   | "mark-unread"
   | "share-guest"
   | "copy"
@@ -95,6 +96,8 @@ export interface ThreadActionMenuState {
   readonly canShareWithGuest?: boolean;
   /** A No project thread with its own folder, on a server that can promote it. */
   readonly canTurnIntoProject?: boolean;
+  /** Decorations live in server settings, so this needs settings-write rather than `canOperate`. */
+  readonly canDecorate?: boolean;
 }
 
 /** Local navigation, read markers, and copying remain available to read-only clients. */
@@ -104,6 +107,7 @@ export function threadActionRequiresOperate(action: ThreadActionMenuId): boolean
     "new-thread-on-branch",
     "project-settings",
     "mark-unread",
+    "decorate",
     "share-guest",
     "copy",
     "copy-path",
@@ -176,6 +180,9 @@ export function buildThreadActionMenuItems(
             disabled: state.isRegeneratingTitle,
           },
         ]
+      : []),
+    ...(state.canDecorate
+      ? [{ id: "decorate" as const, label: "Customize…", icon: "palette" }]
       : []),
     { id: "mark-unread", label: "Mark unread", icon: "mail-open" },
     ...(state.canShareWithGuest

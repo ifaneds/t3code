@@ -660,6 +660,18 @@ describe("serverSettings helpers", () => {
     expect(current.usagePriceOverrides["example-model"]?.cacheReadCostPerMillionTokens).toBe(0.5);
   });
 
+  it("replaces a thread's decoration whole so a cleared emoji does not survive", () => {
+    const current = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
+      threadDecorations: { a: { color: "blue", emoji: "🚀" }, b: { color: "red" } },
+    });
+    const replaced = applyServerSettingsPatch(current, {
+      threadDecorations: { a: { color: "green" } },
+    });
+    expect(replaced.threadDecorations).toEqual({ a: { color: "green" }, b: { color: "red" } });
+    const cleared = applyServerSettingsPatch(replaced, { threadDecorations: { a: null } });
+    expect(cleared.threadDecorations).toEqual({ b: { color: "red" } });
+  });
+
   it("stores background activity profiles as a versioned object and syncs legacy aliases", () => {
     const next = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
       backgroundActivity: {

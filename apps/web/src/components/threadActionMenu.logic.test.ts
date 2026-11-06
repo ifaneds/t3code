@@ -32,6 +32,8 @@ describe("buildThreadActionMenuItems", () => {
       const items = buildThreadActionMenuItems({
         ...baseState,
         canOperate: false,
+        // Decorations are settings, so an operate-less connection still gets them.
+        canDecorate: true,
         isPinned: reversed,
         isSettled: reversed,
         isSnoozed: reversed,

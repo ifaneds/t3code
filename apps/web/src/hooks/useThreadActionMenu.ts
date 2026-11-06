@@ -1,6 +1,9 @@
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import { requestCustomSnooze } from "../components/CustomSnoozeDialog";
 import { openGuestShareDialog } from "../components/chat/guestShareDialogState";
+import { canShareWithGuestAtom } from "../components/chat/guestShareAvailability";
+import { openThreadDecorationDialog } from "../components/threadDecoration/threadDecorationDialogState";
+import { appAtomRegistry } from "../rpc/atomRegistry";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -10,6 +13,7 @@ import {
 import { canSnooze, effectiveSnoozed } from "@t3tools/client-runtime/state/thread-settled";
 import {
   AuthOrchestrationOperateScope,
+  AuthSettingsWriteScope,
   type ScopedThreadRef,
   type ThreadId,
 } from "@t3tools/contracts";
@@ -58,14 +62,19 @@ function failureToast(title: string, error: unknown) {
   );
 }
 
+/**
+ * `threadRef` is the default target; lists with one hook for many rows pass `null` and give
+ * each row's ref to `openMenu` instead.
+ */
 export function useThreadActionMenu(input: {
   readonly threadRef: ScopedThreadRef | null;
   readonly projectCwd: string | null;
-  readonly onStartRename: () => void;
+  readonly onStartRename: (threadRef: ScopedThreadRef) => void;
   readonly onFind?: ((threadRef: ScopedThreadRef) => void) | undefined;
-  readonly canShareWithGuest: boolean;
+  /** Read per thread from its environment when omitted. */
+  readonly canShareWithGuest?: boolean;
 }) {
-  const { threadRef, projectCwd, onStartRename, onFind, canShareWithGuest } = input;
+  const { onStartRename, onFind } = input;
   const router = useRouter();
   const projects = useProjects();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
@@ -115,7 +124,9 @@ export function useThreadActionMenu(input: {
     onError: (error) => failureToast("Failed to copy thread ID", error),
   });
 
-  const openMenu = (position: { x: number; y: number }) => {
+  const defaultThreadRef = input.threadRef;
+  const openMenu = (position: { x: number; y: number }, targetRef?: ScopedThreadRef) => {
+    const threadRef = targetRef ?? defaultThreadRef;
     if (threadRef === null) return;
     void (async () => {
       const api = readLocalApi();
@@ -147,8 +158,11 @@ export function useThreadActionMenu(input: {
         isRunning: !threadRuntimeCanArchive(thread.runtime),
         supports,
         snoozePresets,
-        canShareWithGuest,
+        canShareWithGuest:
+          input.canShareWithGuest ??
+          appAtomRegistry.get(canShareWithGuestAtom(threadRef.environmentId)),
         canTurnIntoProject: canTurnThreadIntoProject(threadRef),
+        canDecorate: readEnvironmentScope(threadRef.environmentId, AuthSettingsWriteScope),
       });
       const clicked = await settlePromise(() => api.contextMenu.show(items, position));
       if (clicked._tag === "Failure" || clicked.value === null) return;
@@ -245,7 +259,10 @@ export function useThreadActionMenu(input: {
           );
           return;
         case "rename":
-          onStartRename();
+          onStartRename(threadRef);
+          return;
+        case "decorate":
+          openThreadDecorationDialog(threadRef);
           return;
         case "regenerate-title":
           if (isRegeneratingTitle) return;
@@ -276,7 +293,15 @@ export function useThreadActionMenu(input: {
           return;
         }
         case "copy-path": {
-          const workspacePath = thread.worktreePath ?? projectCwd;
+          const workspacePath =
+            thread.worktreePath ??
+            input.projectCwd ??
+            projects.find(
+              (candidate) =>
+                candidate.environmentId === thread.environmentId &&
+                candidate.id === thread.projectId,
+            )?.workspaceRoot ??
+            null;
           if (!workspacePath) {
             toastManager.add(
               stackedThreadToast({

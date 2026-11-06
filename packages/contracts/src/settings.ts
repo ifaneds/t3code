@@ -1183,6 +1183,14 @@ export const StorageCleanupSettings = Schema.Struct({
 });
 export type StorageCleanupSettings = typeof StorageCleanupSettings.Type;
 
+/** Per-thread look on this server; values are preset names so unknown ones from newer clients are ignored, not rejected. */
+export const ThreadDecoration = Schema.Struct({
+  color: Schema.optionalKey(Schema.String),
+  emoji: Schema.optionalKey(Schema.String),
+  background: Schema.optionalKey(Schema.String),
+});
+export type ThreadDecoration = typeof ThreadDecoration.Type;
+
 export const ServerSettings = Schema.Struct({
   // Null means unmigrated; empty is authoritative and must not resurrect cleared preferences.
   favorites: Schema.NullOr(ModelFavorites).pipe(Schema.withDecodingDefault(Effect.succeed(null))),
@@ -1383,6 +1391,11 @@ export const ServerSettings = Schema.Struct({
 
   /** Sent by the Usage tab with each summary request to this environment; edit in settings.json. Invalid values are ignored. */
   usageModelFilter: ForwardCompatibleOptional(UsageModelFilter),
+
+  /** Keyed by thread id. */
+  threadDecorations: Schema.Record(Schema.String, ThreadDecoration).pipe(
+    Schema.withDecodingDefault(Effect.succeed({})),
+  ),
 });
 export type ServerSettings = typeof ServerSettings.Type;
 
@@ -1722,6 +1735,10 @@ export const ServerSettingsPatch = Schema.Struct({
 
   usageModelAliases: Schema.optionalKey(
     Schema.Record(TrimmedNonEmptyString, Schema.NullOr(TrimmedNonEmptyString)),
+  ),
+  // Merge per thread; null clears a thread's decoration.
+  threadDecorations: Schema.optionalKey(
+    Schema.Record(Schema.String, Schema.NullOr(ThreadDecoration)),
   ),
 });
 export type ServerSettingsPatch = typeof ServerSettingsPatch.Type;

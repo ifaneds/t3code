@@ -54,6 +54,7 @@ import {
 } from "@t3tools/client-runtime/environment";
 import {
   AuthOrchestrationOperateScope,
+  AuthSettingsWriteScope,
   ProjectId,
   type ScopedThreadRef,
   type ThreadId,
@@ -161,6 +162,7 @@ import { readEnvironmentScope, useEnvironmentScope } from "../state/session";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { canShareWithGuestAtom } from "./chat/guestShareAvailability";
 import { openGuestShareDialog } from "./chat/guestShareDialogState";
+import { openThreadDecorationDialog } from "./threadDecoration/threadDecorationDialogState";
 import {
   buildThreadRouteParams,
   resolveActiveThreadRouteRef,
@@ -2625,6 +2627,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 canShareWithGuestAtom(threadRef.environmentId),
               ),
               canTurnIntoProject: canTurnThreadIntoProject(threadRef),
+              canDecorate: readEnvironmentScope(threadRef.environmentId, AuthSettingsWriteScope),
               supports: {
                 settlement: configLoaded,
                 autoSettleOptOut: supportsAutoSettleOptOut,
@@ -2748,6 +2751,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             return;
           case "share-guest":
             openGuestShareDialog(threadRef);
+            return;
+          case "decorate":
+            openThreadDecorationDialog(threadRef);
             return;
           case "regenerate-title": {
             if (isRegeneratingTitle) return;

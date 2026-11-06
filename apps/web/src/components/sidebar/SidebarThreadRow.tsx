@@ -2,6 +2,7 @@ import { ThreadHoverCard, ThreadHoverCardPopup } from "../ThreadHoverCard";
 import { ThreadTerminalStatusButton } from "../ThreadStatusIndicators";
 import { discardComposerDraft } from "../../lib/discardComposerDraft";
 import { requestCustomSnooze } from "../CustomSnoozeDialog";
+import { ThreadDecorationMarker } from "../threadDecoration/ThreadDecorationDialog";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
 import { useDeadlinePassed } from "~/hooks/useDeadline";
 import { resolveThreadCurrentPullRequestLink } from "@t3tools/client-runtime/thread-pull-requests";
@@ -1017,36 +1018,39 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       onCancel={onCancelRename}
     />
   ) : (
-    <span
-      aria-hidden
-      className={cn(
-        "min-w-0 flex-1 text-start text-sm transition-opacity motion-reduce:transition-none",
-        shouldRecede ? "font-normal" : "font-medium",
-        variant !== "slim"
-          ? cn(
-              "truncate",
-              shouldRecede
-                ? "text-foreground/75 group-hover/sidebar-row:text-foreground group-focus-visible/sidebar-row:text-foreground"
-                : status === "failed" && !isUnread && !isWoke
-                  ? "text-foreground/95"
-                  : "text-foreground",
-            )
-          : cn(
-              "truncate group-focus-within/sidebar-row:text-foreground group-hover/sidebar-row:text-foreground",
-              shouldRecede
-                ? "text-secondary-label"
-                : props.isActive || isWoke || status === "input" || status === "request"
-                  ? "text-foreground"
-                  : isUnread
-                    ? "text-muted-foreground"
-                    : "text-secondary-label/70",
-            ),
-        isRegeneratingTitle && "opacity-55",
-      )}
-      dir={textDirection(thread.title)}
-    >
-      {thread.title}
-    </span>
+    <>
+      <ThreadDecorationMarker threadRef={threadRef} />
+      <span
+        aria-hidden
+        className={cn(
+          "min-w-0 flex-1 text-start text-sm transition-opacity motion-reduce:transition-none",
+          shouldRecede ? "font-normal" : "font-medium",
+          variant !== "slim"
+            ? cn(
+                "truncate",
+                shouldRecede
+                  ? "text-foreground/75 group-hover/sidebar-row:text-foreground group-focus-visible/sidebar-row:text-foreground"
+                  : status === "failed" && !isUnread && !isWoke
+                    ? "text-foreground/95"
+                    : "text-foreground",
+              )
+            : cn(
+                "truncate group-focus-within/sidebar-row:text-foreground group-hover/sidebar-row:text-foreground",
+                shouldRecede
+                  ? "text-secondary-label"
+                  : props.isActive || isWoke || status === "input" || status === "request"
+                    ? "text-foreground"
+                    : isUnread
+                      ? "text-muted-foreground"
+                      : "text-secondary-label/70",
+              ),
+          isRegeneratingTitle && "opacity-55",
+        )}
+        dir={textDirection(thread.title)}
+      >
+        {thread.title}
+      </span>
+    </>
   );
   const accessibleTitle = isRenaming ? null : <span className="sr-only">{thread.title}</span>;
 
