@@ -7,32 +7,32 @@ export const THREAD_BACKGROUNDS = [
   {
     value: "sunset",
     label: "Sunset",
-    className: "bg-linear-to-br from-orange-400/30 via-rose-400/20 to-fuchsia-500/30",
+    className: "bg-linear-to-br from-orange-400/45 via-rose-400/25 to-fuchsia-500/45",
   },
   {
     value: "ocean",
     label: "Ocean",
-    className: "bg-linear-to-br from-sky-400/30 via-cyan-400/15 to-blue-600/30",
+    className: "bg-linear-to-br from-sky-400/45 via-cyan-400/25 to-blue-600/45",
   },
   {
     value: "forest",
     label: "Forest",
-    className: "bg-linear-to-br from-emerald-500/30 via-lime-400/15 to-teal-600/30",
+    className: "bg-linear-to-br from-emerald-500/45 via-lime-400/25 to-teal-600/45",
   },
   {
     value: "dusk",
     label: "Dusk",
-    className: "bg-linear-to-br from-indigo-500/30 via-purple-500/20 to-pink-500/25",
+    className: "bg-linear-to-br from-indigo-500/45 via-purple-500/25 to-pink-500/45",
   },
   {
     value: "citrus",
     label: "Citrus",
-    className: "bg-linear-to-br from-yellow-300/35 via-amber-300/20 to-orange-400/30",
+    className: "bg-linear-to-br from-yellow-300/45 via-amber-300/25 to-orange-400/45",
   },
   {
     value: "slate",
     label: "Slate",
-    className: "bg-linear-to-br from-slate-400/30 via-gray-300/10 to-zinc-500/30",
+    className: "bg-linear-to-br from-slate-400/45 via-gray-300/25 to-zinc-500/45",
   },
   {
     value: "grid",

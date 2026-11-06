@@ -44,35 +44,31 @@ export function ThreadDecorationDialogHost() {
   );
 }
 
-/** Tint, stripe, and background layers behind a decorated surface; the parent is `relative`. */
+/**
+ * Tint, stripe, and background layers for a `relative` surface. `behind` puts them under
+ * unpositioned content, which needs the surface to be `isolate`.
+ */
 export function ThreadDecorationLayers(props: {
   readonly decoration: ResolvedThreadDecoration | null;
+  readonly behind?: boolean;
 }) {
   const { decoration } = props;
-  if (!decoration) return null;
+  if (!decoration || (!decoration.background && !decoration.color)) return null;
+  const layer = cn("pointer-events-none absolute", props.behind && "-z-10");
   return (
     <>
       {decoration.background ? (
-        <span
-          aria-hidden
-          className={cn("pointer-events-none absolute inset-0", decoration.background.className)}
-        />
+        <span aria-hidden className={cn(layer, "inset-0", decoration.background.className)} />
       ) : null}
       {decoration.color ? (
         <>
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute inset-0 opacity-10",
-              decoration.color.swatchClassName,
-            )}
+            className={cn(layer, "inset-0 opacity-10", decoration.color.swatchClassName)}
           />
           <span
             aria-hidden
-            className={cn(
-              "pointer-events-none absolute inset-y-0 left-0 w-1",
-              decoration.color.swatchClassName,
-            )}
+            className={cn(layer, "inset-y-0 left-0 w-1", decoration.color.swatchClassName)}
           />
         </>
       ) : null}
@@ -255,16 +251,10 @@ function ThreadDecorationDialog(props: {
   );
 }
 
-/** Compact colour dot and emoji for list rows. */
-export function ThreadDecorationMarker(props: { readonly threadRef: ScopedThreadRef }) {
-  const decoration = useThreadDecoration(props.threadRef);
-  if (!decoration || (!decoration.color && !decoration.emoji)) return null;
-  return (
-    <span aria-hidden className="flex shrink-0 items-center gap-1">
-      {decoration.color ? (
-        <span className={cn("size-2 rounded-full", decoration.color.swatchClassName)} />
-      ) : null}
-      {decoration.emoji ? <span className="text-xs leading-none">{decoration.emoji}</span> : null}
+export function ThreadDecorationEmoji(props: { readonly emoji: string | null }) {
+  return props.emoji ? (
+    <span aria-hidden className="shrink-0 text-xs leading-none">
+      {props.emoji}
     </span>
-  );
+  ) : null;
 }
