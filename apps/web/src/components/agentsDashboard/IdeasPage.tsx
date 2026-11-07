@@ -3,15 +3,27 @@ import {
   type EnvironmentThreadShell,
 } from "@t3tools/client-runtime/state/models";
 import { canSnooze } from "@t3tools/client-runtime/state/thread-settled";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { stripDisplayedPlanMarkdown } from "@t3tools/shared/proposedPlanText";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { newMessageId } from "../../lib/utils";
-import { useQuietThreadShells } from "../../state/entities";
+import { findLatestProposedPlan } from "../../session-logic";
+import { useQuietThreadProjection, useQuietThreadShells } from "../../state/entities";
 import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
+import ChatMarkdown from "../ChatMarkdown";
 import { Button } from "../ui/button";
+import {
+  Dialog,
+  DialogFooter,
+  DialogHeader,
+  DialogPanel,
+  DialogPopup,
+  DialogTitle,
+} from "../ui/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { AgentsDashboardShell } from "./AgentsDashboardShell";
 import { AGENT_STATE_META, useThreadPlaceLabel } from "./AgentTileCard";
@@ -79,6 +91,7 @@ function IdeaCard(props: {
   const settle = useOrchestrationCommand(threadEnvironment.settle, { reportFailure: false });
   const snooze = useOrchestrationCommand(threadEnvironment.snooze);
   const [busy, setBusy] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const state = resolveAgentTileState(thread);
   const { Icon, tone } = AGENT_STATE_META[state];
   const status = thread.hasActionableProposedPlan
@@ -143,6 +156,9 @@ function IdeaCard(props: {
         </span>
       </Link>
       <div className="flex gap-2">
+        <Button size="compact" variant="outline" onClick={() => setPlanOpen(true)}>
+          View plan
+        </Button>
         <Button size="compact" disabled={busy} onClick={() => void approve()}>
           Approve
         </Button>
@@ -165,6 +181,68 @@ function IdeaCard(props: {
           </Button>
         ) : null}
       </div>
+      {planOpen ? (
+        <IdeaPlanDialog
+          thread={thread}
+          busy={busy}
+          onClose={() => setPlanOpen(false)}
+          onApprove={() => void approve().then(() => setPlanOpen(false))}
+          onReject={() => void reject().then(() => setPlanOpen(false))}
+        />
+      ) : null}
     </article>
+  );
+}
+
+// Mounted only while open, so the inbox never loads thread details it does not show.
+function IdeaPlanDialog(props: {
+  readonly thread: EnvironmentThreadShell;
+  readonly busy: boolean;
+  readonly onClose: () => void;
+  readonly onApprove: () => void;
+  readonly onReject: () => void;
+}) {
+  const { thread } = props;
+  const threadRef = scopeThreadRef(thread.environmentId, thread.id);
+  const detail = useQuietThreadProjection(threadRef);
+  const plan = findLatestProposedPlan(detail?.projection ?? null, null);
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) props.onClose();
+      }}
+    >
+      <DialogPopup className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{thread.title}</DialogTitle>
+        </DialogHeader>
+        <DialogPanel>
+          {plan ? (
+            <ChatMarkdown
+              text={stripDisplayedPlanMarkdown(plan.planMarkdown)}
+              cwd={undefined}
+              environmentId={thread.environmentId}
+              threadRef={threadRef}
+              isStreaming={false}
+              headingLevelOffset={1}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {detail === null ? "Loading plan…" : "No plan yet. The agent is still working on it."}
+            </p>
+          )}
+        </DialogPanel>
+        <DialogFooter>
+          <Button variant="outline" disabled={props.busy} onClick={props.onReject}>
+            Reject
+          </Button>
+          <Button disabled={props.busy} onClick={props.onApprove}>
+            Approve
+          </Button>
+        </DialogFooter>
+      </DialogPopup>
+    </Dialog>
   );
 }
